@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+  integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css"
+  integrity="sha512-KfkfwYDsLkIlwQp6LFnl8zNdLGxu9YAA1QvwINks4PhcElQSvqcyVLLD9aMhXd13uQjoXtEKNosOWaZqXgel0g=="
+  crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script th:inline="javascript">
+  var contextPath = [[@{/}]];
+  contextPath = contextPath.replace(/\/$/, '');
+</script>
+<title>Product (AJAX)</title>
+</head>
+<body>
+<nav class="navbar navbar-expand navbar-dark bg-dark px-3">
+  <span class="navbar-brand">Admin</span>
+  <ul class="navbar-nav">
+    <li class="nav-item"><a class="nav-link" th:href="@{/admin}">Category</a></li>
+    <li class="nav-item"><a class="nav-link active" th:href="@{/admin/products}">Product</a></li>
+  </ul>
+</nav>
+<main class="container-fluid">
+  <div class="row mt-4">
+    <div class="col mt-5 mb-5">
+
+      <p><button class="btn btn-success ml-auto" onclick="showCreateNewProductModal()"><i class="fas fa-plus mr-2"></i>Thêm Product Ajax</button></p>
+
+      <table class="table table-striped table-responsive" id="productTable">
+        <thead class="thead-inverse">
+          <tr>
+            <th>Id</th><th>Hình ảnh</th><th>Tên</th><th>Giá</th><th>Giảm giá</th><th>Số lượng</th><th>Category</th><th>Trạng thái</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+    </div>
+  </div>
+</main>
+
+<div class="modal" tabindex="-1" role="dialog" id="createProductModal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <form id="addProduct" method="post" onsubmit="return false;" enctype="multipart/form-data">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Product</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="new_productName">Product Name</label>
+            <input type="text" class="form-control" id="new_productName" name="productName" required>
+          </div>
+          <div class="form-group">
+            <label for="new_unitPrice">Unit Price</label>
+            <input type="number" step="any" min="0" class="form-control" id="new_unitPrice" name="unitPrice" required>
+          </div>
+          <div class="form-group">
+            <label for="new_discount">Discount</label>
+            <input type="number" step="any" min="0" class="form-control" id="new_discount" name="discount" value="0" required>
+          </div>
+          <div class="form-group">
+            <label for="new_quantity">Quantity</label>
+            <input type="number" min="0" class="form-control" id="new_quantity" name="quantity" required>
+          </div>
+          <div class="form-group">
+            <label for="new_description">Description</label>
+            <input type="text" class="form-control" id="new_description" name="description" required>
+          </div>
+          <div class="form-group">
+            <label for="new_categoryId">Category</label>
+            <select class="form-control" id="new_categoryId" name="categoryId" required></select>
+          </div>
+          <div class="form-group">
+            <label for="new_status">Status</label>
+            <select class="form-control" id="new_status" name="status">
+              <option value="1">1 - Hoạt động</option>
+              <option value="0">0 - Ngừng</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="new_imageFile">Image</label>
+            <input type="file" class="form-control" id="new_imageFile" name="imageFile">
+          </div>
+          <div class="form-group row">
+            <div class="col text-center mt-3"><button type="submit" class="btn btn-primary w-100">Add</button></div>
+          </div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal" tabindex="-1" role="dialog" id="updateProductInfoModal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Update Product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="card">
+          <div class="card-header"><h5><i class="far fa-address-card mr-1"></i>Product</h5></div>
+          <div class="card-body pb-0">
+            <p id="updateProductInfoModalId"></p>
+            <p id="updateProductInfoModalName"></p>
+            <p id="updateProductInfoModalImage"></p>
+          </div>
+        </div>
+        <div class="card mt-2">
+          <div class="card-header"><h5><i class="far fa-address-card mr-1"></i>Update Product</h5></div>
+          <div class="card-body pb-0">
+            <form id="updateProduct" method="post" onsubmit="return false;" enctype="multipart/form-data">
+              <div class="form-group">
+                <label for="productName_up">Product Name</label>
+                <input type="text" class="form-control" id="productName_up" name="productName" required>
+              </div>
+              <div class="form-group">
+                <label for="unitPrice_up">Unit Price</label>
+                <input type="number" step="any" min="0" class="form-control" id="unitPrice_up" name="unitPrice" required>
+              </div>
+              <div class="form-group">
+                <label for="discount_up">Discount</label>
+                <input type="number" step="any" min="0" class="form-control" id="discount_up" name="discount" required>
+              </div>
+              <div class="form-group">
+                <label for="quantity_up">Quantity</label>
+                <input type="number" min="0" class="form-control" id="quantity_up" name="quantity" required>
+              </div>
+              <div class="form-group">
+                <label for="description_up">Description</label>
+                <input type="text" class="form-control" id="description_up" name="description" required>
+              </div>
+              <div class="form-group">
+                <label for="categoryId_up">Category</label>
+                <select class="form-control" id="categoryId_up" name="categoryId" required></select>
+              </div>
+              <div class="form-group">
+                <label for="status_up">Status</label>
+                <select class="form-control" id="status_up" name="status">
+                  <option value="1">1 - Hoạt động</option>
+                  <option value="0">0 - Ngừng</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="imageFile_up">Image</label>
+                <input type="file" class="form-control" id="imageFile_up" name="imageFile">
+              </div>
+              <input type="hidden" id="productId_up" name="productId">
+              <div class="form-group row">
+                <div class="col text-center mt-3 mb-3"><button type="submit" class="btn btn-primary w-100">Cập nhật</button></div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+
+<script type="text/javascript">
+var productsById = {};
+
+function escapeHtml(s) {
+  return $('<div>').text(s == null ? '' : s).html();
+}
+
+function showModal(selector) {
+  bootstrap.Modal.getOrCreateInstance($(selector)[0]).show();
+}
+
+function hideModal(selector) {
+  bootstrap.Modal.getOrCreateInstance($(selector)[0]).hide();
+}
+
+function buildRow(p) {
+  var tr = [];
+  tr.push('<tr>');
+  tr.push('<td>' + p.productId + '</td>');
+  tr.push('<td>' + (p.images
+    ? '<img src="' + contextPath + '/admin/categories/images/' + encodeURIComponent(p.images) + '" style="width:70px" class="img-fluid" alt="">'
+    : '') + '</td>');
+  tr.push('<td>' + escapeHtml(p.productName) + '</td>');
+  tr.push('<td>' + p.unitPrice + '</td>');
+  tr.push('<td>' + p.discount + '</td>');
+  tr.push('<td>' + p.quantity + '</td>');
+  tr.push('<td>' + escapeHtml(p.categoryName) + '</td>');
+  tr.push('<td>' + p.status + '</td>');
+  tr.push('<td>'
+    + '<a href="#" class="btn btn-outline-warning btn-edit-product" data-id="' + p.productId + '"><i class="fa fa-edit"></i></a> '
+    + '<a href="#" class="btn btn-outline-danger btn-delete-product" data-id="' + p.productId + '"><i class="fa fa-trash"></i></a>'
+    + '</td>');
+  tr.push('</tr>');
+  return tr.join('');
+}
+
+function loadProducts() {
+  $.getJSON(contextPath + '/api/product/getProducts', function(json) {
+    var list = json.body || [];
+    var rows = [];
+    productsById = {};
+    for (var i = 0; i < list.length; i++) {
+      productsById[list[i].productId] = list[i];
+      rows.push(buildRow(list[i]));
+    }
+    $('#productTable tbody').html(rows.join(''));
+  }).fail(function(xhr) {
+    console.error('GET products failed:', xhr.status, xhr.responseText);
+  });
+}
+
+function loadCategories() {
+  $.getJSON(contextPath + '/api/category', function(json) {
+    var list = json.body || [];
+    var options = [];
+    for (var i = 0; i < list.length; i++) {
+      options.push('<option value="' + list[i].categoryId + '">' + escapeHtml(list[i].categoryName) + '</option>');
+    }
+    $('#new_categoryId, #categoryId_up').html(options.join(''));
+  }).fail(function(xhr) {
+    console.error('GET categories failed:', xhr.status, xhr.responseText);
+  });
+}
+
+$(document).ready(function() {
+  loadCategories();
+  loadProducts();
+});
+
+function showCreateNewProductModal() {
+  $('#addProduct')[0].reset();
+  showModal('#createProductModal');
+}
+
+$("form#addProduct").submit(function(e) {
+  e.preventDefault();
+  var formData = new FormData(this);
+  $.ajax({
+    url: contextPath + '/api/product/addProduct',
+    type: 'POST',
+    dataType: "json",
+    data: formData,
+    success: function(data) {
+      loadProducts();
+      hideModal('#createProductModal');
+    },
+    error: function(xhr) {
+      console.error('POST product failed:', xhr.status, xhr.responseText);
+      alert('Thêm Product thất bại');
+    },
+    cache: false,
+    contentType: false,
+    processData: false
+  });
+});
+
+function showEditProductModal(p) {
+  $('#updateProductInfoModalId')[0].innerText = "Product ID: " + p.productId;
+  $('#updateProductInfoModalName')[0].innerText = "Product Name: " + p.productName;
+  $('#updateProductInfoModalImage')[0].innerText = 'Image: ' + (p.images || '');
+  $('#productId_up')[0].value = p.productId;
+  $('#productName_up')[0].value = p.productName;
+  $('#unitPrice_up')[0].value = p.unitPrice;
+  $('#discount_up')[0].value = p.discount;
+  $('#quantity_up')[0].value = p.quantity;
+  $('#description_up')[0].value = p.description;
+  $('#categoryId_up').val(p.categoryId);
+  $('#status_up').val(p.status);
+  $('#imageFile_up')[0].value = '';
+  showModal('#updateProductInfoModal');
+}
+
+$(document).delegate('.btn-edit-product', 'click', function(e) {
+  e.preventDefault();
+  var p = productsById[$(this).data('id')];
+  if (p) {
+    showEditProductModal(p);
+  }
+});
+
+$("form#updateProduct").submit(function(e) {
+  e.preventDefault();
+  var formData = new FormData(this);
+  $.ajax({
+    url: contextPath + '/api/product/updateProduct',
+    type: 'PUT',
+    dataType: "json",
+    data: formData,
+    success: function(data) {
+      loadProducts();
+      hideModal('#updateProductInfoModal');
+    },
+    error: function(xhr) {
+      console.error('PUT product failed:', xhr.status, xhr.responseText);
+      alert('Cập nhật Product thất bại');
+    },
+    cache: false,
+    contentType: false,
+    processData: false
+  });
+});
+
+$(document).delegate('.btn-delete-product', 'click', function(e) {
+  e.preventDefault();
+  var id = $(this).data('id');
+  if (confirm('Do you really want to delete record?')) {
+    var parent = $(this).parent().parent();
+    $.ajax({
+      type: "DELETE",
+      url: contextPath + '/api/product/deleteProduct?productId=' + id,
+      dataType: "json",
+      success: function() {
+        parent.fadeOut('slow', function() { $(this).remove(); });
+      },
+      error: function(xhr) {
+        console.error('DELETE product failed:', xhr.status, xhr.responseText);
+        alert('Xóa Product thất bại');
+      }
+    });
+  }
+});
+</script>
+</body>
+</html>

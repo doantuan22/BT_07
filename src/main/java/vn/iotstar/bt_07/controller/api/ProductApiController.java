@@ -1,7 +1,9 @@
 package vn.iotstar.bt_07.controller.api;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,8 +13,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import vn.iotstar.bt_07.entity.Category;
 import vn.iotstar.bt_07.entity.Product;
+import vn.iotstar.bt_07.model.ProductDTO;
 import vn.iotstar.bt_07.model.ProductModel;
 import vn.iotstar.bt_07.model.Response;
 import vn.iotstar.bt_07.service.ICategoryService;
@@ -90,5 +95,67 @@ public class ProductApiController {
 						HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		}
+	}
+
+	@GetMapping(path = "/getProducts")
+	public ResponseEntity<?> getProducts() {
+		List<ProductDTO> list = new ArrayList<>();
+		for (Product p : productService.findAll()) {
+			ProductDTO dto = new ProductDTO();
+			BeanUtils.copyProperties(p, dto);
+			if (p.getCategory() != null) {
+				dto.setCategoryId(p.getCategory().getCategoryId());
+				dto.setCategoryName(p.getCategory().getCategoryName());
+			}
+			list.add(dto);
+		}
+		return new ResponseEntity<Response>(new Response(true, "Thành công", list), HttpStatus.OK);
+	}
+
+	@PutMapping(path = "/updateProduct", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<?> updateProduct(
+			@Validated @RequestParam("productId") Long productId,
+			@Validated @RequestParam("productName") String productName,
+			@RequestParam("imageFile") MultipartFile imageFile,
+			@Validated @RequestParam("unitPrice") Double unitPrice,
+			@Validated @RequestParam("discount") Double discount,
+			@Validated @RequestParam("description") String description,
+			@Validated @RequestParam("categoryId") Long categoryId,
+			@Validated @RequestParam("quantity") Integer quantity,
+			@Validated @RequestParam("status") Short status) {
+		Optional<Product> optProduct = productService.findById(productId);
+		if (optProduct.isEmpty()) {
+			return new ResponseEntity<Response>(new Response(false, "Không tìm thấy Product", null), HttpStatus.BAD_REQUEST);
+		}
+		Optional<Category> optCategory = categoryService.findById(categoryId);
+		if (optCategory.isEmpty()) {
+			return new ResponseEntity<Response>(new Response(false, "Không tìm thấy Category", null), HttpStatus.BAD_REQUEST);
+		}
+		Product product = optProduct.get();
+		if (!imageFile.isEmpty()) {
+			UUID uuid = UUID.randomUUID();
+			String uuString = uuid.toString();
+			product.setImages(storageService.getSorageFilename(imageFile, uuString));
+			storageService.store(imageFile, product.getImages());
+		}
+		product.setProductName(productName);
+		product.setUnitPrice(unitPrice);
+		product.setDiscount(discount);
+		product.setDescription(description);
+		product.setQuantity(quantity);
+		product.setStatus(status);
+		product.setCategory(optCategory.get());
+		productService.save(product);
+		return new ResponseEntity<Response>(new Response(true, "Cập nhật Thành công", product), HttpStatus.OK);
+	}
+
+	@DeleteMapping(path = "/deleteProduct")
+	public ResponseEntity<?> deleteProduct(@Validated @RequestParam("productId") Long productId) {
+		Optional<Product> optProduct = productService.findById(productId);
+		if (optProduct.isEmpty()) {
+			return new ResponseEntity<Response>(new Response(false, "Không tìm thấy Product", null), HttpStatus.BAD_REQUEST);
+		}
+		productService.delete(optProduct.get());
+		return new ResponseEntity<Response>(new Response(true, "Xóa Thành công", optProduct.get()), HttpStatus.OK);
 	}
 }
